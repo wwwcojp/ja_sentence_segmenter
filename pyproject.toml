@@ -3,12 +3,23 @@ name = "ja_sentence_segmenter"
 version = "0.0.1"
 description = "sentence segmenter for japanese text"
 authors = ["wwwcojp"]
-homepage = "TODO"
-repository = "TODO"
+homepage = "https://github.com/wwwcojp"
+repository = "https://github.com/wwwcojp/ja_sentence_segmenter"
 license = "MIT"
 readme = "README.md"
 packages = [
     { include = "ja_sentence_segmenter" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    'Programming Language :: Python :: 3',
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Text Processing",
+    "Topic :: Text Processing :: General",
 ]
 
 [tool.poetry.dependencies]
