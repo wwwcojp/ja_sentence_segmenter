@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ja_sentence_segmenter"
-version = "0.0.1"
+version = "0.0.2"
 description = "sentence segmenter for japanese text"
 authors = ["wwwcojp"]
 homepage = "https://github.com/wwwcojp"
@@ -9,6 +9,9 @@ license = "MIT"
 readme = "README.md"
 packages = [
     { include = "ja_sentence_segmenter" },
+]
+include = [
+  "ja_sentence_segmenter/py.typed"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
