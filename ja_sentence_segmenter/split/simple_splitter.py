@@ -7,6 +7,7 @@ BETWEEN_QUOTE_JA_REGEX = r"「[^「」]*」"
 BETWEEN_PARENS_JA_REGEX = r"\([^()]*\)"
 ESCAPE_CHAR = "∯"
 DEFAULT_PUNCTUATION_REGEX = r"。!?"
+"""default punctuation characters for splitting."""
 
 
 def __split_newline_iter(texts: Iterator[str]) -> Generator[str, None, None]:
