@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: |
           pip install pdoc
-          pdoc -d numpy -o docs ja_sentence_segmenter/
+          pdoc -d numpy -o docs -t theme ja_sentence_segmenter/
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
