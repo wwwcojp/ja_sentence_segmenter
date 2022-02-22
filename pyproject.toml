@@ -3,7 +3,7 @@ name = "ja_sentence_segmenter"
 version = "0.0.2"
 description = "sentence segmenter for japanese text"
 authors = ["wwwcojp"]
-homepage = "https://github.com/wwwcojp"
+homepage = "https://wwwcojp.github.io/ja_sentence_segmenter/ja_sentence_segmenter.html"
 repository = "https://github.com/wwwcojp/ja_sentence_segmenter"
 license = "MIT"
 readme = "README.md"
@@ -14,7 +14,7 @@ include = [
   "ja_sentence_segmenter/py.typed"
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Environment :: Console",
     "License :: OSI Approved :: MIT License",
     'Programming Language :: Python :: 3',
@@ -43,8 +43,10 @@ isort = "^5.10"
 mypy = "^0.931"
 pdoc = {version = "^10.0", python = ">=3.7,<4.0"}
 pip-licenses = "^3.5"
+poethepoet = "^0.12"
 pytest = "^7.0"
 pytest-cov = "^3.0"
+safety = "^1.10"
 tox = "^3.14"
 
 [tool.black]
@@ -110,6 +112,11 @@ warn_return_any = true
 # extra
 warn_unreachable = true
 disallow_any_unimported = true
+
+[tool.poe.tasks]
+bandit = {"cmd" = "bandit -f yaml -r ja_sentence_segmenter/", "help" = "analyze code using bandit"}
+pdoc = {"cmd" = "pdoc -d numpy -o docs -t theme/ ja_sentence_segmenter/", "help" = "generate api documents using pdoc"}
+safety = {"shell" = "poetry export --without-hashes --format=requirements.txt --dev | safety check --stdin", "help" = "scan package vulnerabilities using safety"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests",]
