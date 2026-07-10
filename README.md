@@ -1,10 +1,15 @@
 # ja_sentence_segmenter
+
+[![Test](https://github.com/wwwcojp/ja_sentence_segmenter/actions/workflows/test.yml/badge.svg)](https://github.com/wwwcojp/ja_sentence_segmenter/actions/workflows/test.yml)
+[![PyPI](https://img.shields.io/pypi/v/ja-sentence-segmenter)](https://pypi.org/project/ja-sentence-segmenter/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/ja-sentence-segmenter)](https://pypi.org/project/ja-sentence-segmenter/)
+
 日本語のテキストに対して、ルールベースによる文区切り（sentence segmentation）を行います。
 
 ## Getting Started
 
 ### Prerequisites
-* Python 3.6+
+* Python 3.9+
 
 ### Installing
 `pip install ja_sentence_segmenter`
@@ -29,6 +34,21 @@ print(list(segmenter(text1)))
 
 ```
 > ["これはペンです。", "それはマーカーです。"]
+```
+
+## Development
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+```bash
+git clone https://github.com/wwwcojp/ja_sentence_segmenter.git
+cd ja_sentence_segmenter
+uv sync
+
+uv run poe lint       # lint and format check (ruff)
+uv run poe typecheck  # type check (mypy)
+uv run poe test       # run tests (pytest)
+uv run tox            # run tests on all supported Python versions
 ```
 
 ## Versioning
