@@ -65,6 +65,7 @@ coverage.xml
 # generated documentation (pdoc output), except committed specs
 /docs/*
 !/docs/superpowers/
+/_site
 
 # PyBuilder
 target/
