@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] 2026-07-10
 ### Changed
-- Drop support for Python 3.6-3.8 (minimum supported version is now 3.9); add support for Python 3.10-3.14
+- Drop support for Python 3.6-3.8 (minimum supported version is now 3.9); add support for Python 3.11-3.14
 - Migrate packaging from Poetry to [uv](https://docs.astral.sh/uv/) (PEP 621 metadata, uv_build backend)
 - Replace black/flake8/isort/pep8-naming/dlint with [Ruff](https://docs.astral.sh/ruff/); update mypy/bandit/pytest to latest
 - Migrate to tox 4 + tox-uv (config in pyproject.toml)

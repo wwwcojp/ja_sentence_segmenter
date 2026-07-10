@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +22,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Build API docs
-        run: uvx pdoc -d numpy -o _site -t theme/ ja_sentence_segmenter/
+        run: uv run --group dev pdoc -d numpy -o _site -t theme/ ja_sentence_segmenter/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
