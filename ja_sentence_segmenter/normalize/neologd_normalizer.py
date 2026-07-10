@@ -3,15 +3,15 @@
 正規化のコードは以下を参考に一部修正を加えています。
 https://github.com/neologd/mecab-ipadic-neologd/wiki/Regexp.ja#python-written-by-hideaki-t--overlast
 """
-from __future__ import unicode_literals
 
 import re
 import unicodedata
-from typing import Dict, Generator, Iterator, List, Union, overload
+from collections.abc import Generator, Iterator
+from typing import Union, overload
 
 
 def __unicode_normalize(cls: str, s: str) -> str:
-    pt = re.compile("([{}]+)".format(cls))
+    pt = re.compile(f"([{cls}]+)")
 
     def norm(c: str) -> str:
         return unicodedata.normalize("NFKC", c) if pt.match(c) else c
@@ -25,17 +25,17 @@ def __remove_extra_spaces(s: str) -> str:
     s = re.sub("[ 　]+", " ", s)
     blocks = "".join(
         (
-            "\u4E00-\u9FFF",  # CJK UNIFIED IDEOGRAPHS
-            "\u3040-\u309F",  # HIRAGANA
-            "\u30A0-\u30FF",  # KATAKANA
-            "\u3000-\u303F",  # CJK SYMBOLS AND PUNCTUATION
-            "\uFF00-\uFFEF",  # HALFWIDTH AND FULLWIDTH FORMS
+            "\u4e00-\u9fff",  # CJK UNIFIED IDEOGRAPHS
+            "\u3040-\u309f",  # HIRAGANA
+            "\u30a0-\u30ff",  # KATAKANA
+            "\u3000-\u303f",  # CJK SYMBOLS AND PUNCTUATION
+            "\uff00-\uffef",  # HALFWIDTH AND FULLWIDTH FORMS
         )
     )
-    basic_latin = "\u0000-\u007F"
+    basic_latin = "\u0000-\u007f"
 
     def remove_space_between(cls1: str, cls2: str, s: str) -> str:
-        p = re.compile("([{}]) ([{}])".format(cls1, cls2))
+        p = re.compile(f"([{cls1}]) ([{cls2}])")
         while p.search(s):
             s = p.sub(r"\1\2", s)
         return s
@@ -50,15 +50,13 @@ def __normalize_neologd(s: str, remove_tildes: bool) -> str:
     s = s.strip()
     s = __unicode_normalize("０-９Ａ-Ｚａ-ｚ｡-ﾟ", s)
 
-    def maketrans(f: str, t: str) -> Dict[int, int]:
+    def maketrans(f: str, t: str) -> dict[int, int]:
         return {ord(x): ord(y) for x, y in zip(f, t)}
 
     s = re.sub("[˗֊‐‑‒–⁃⁻₋−]+", "-", s)  # normalize hyphens
     s = re.sub("[﹣－ｰ—―─━ー]+", "ー", s)  # normalize choonpus
-    if remove_tildes:
-        s = re.sub("[~∼∾〜〰～]", "", s)  # remove tildes (original)
-    else:
-        s = re.sub("[~∼∾〜〰～]", "～", s)  # normalize tildes (modified by wwwcojp)
+    # remove tildes (original) if remove_tildes else normalize tildes (modified by wwwcojp)
+    s = re.sub("[~∼∾〜〰～]", "", s) if remove_tildes else re.sub("[~∼∾〜〰～]", "～", s)
 
     s = s.translate(maketrans("!\"#$%&'()*+,-./:;<=>?@[¥]^_`{|}~｡､･｢｣", "！”＃＄％＆’（）＊＋，－．／：；＜＝＞？＠［￥］＾＿｀｛｜｝〜。、・「」"))
 
@@ -75,21 +73,18 @@ def __normalize_iter(texts: Iterator[str], remove_tildes: bool) -> Generator[str
 
 
 @overload
-def normalize(arg: str, remove_tildes: bool = False) -> Generator[str, None, None]:
-    ...
+def normalize(arg: str, remove_tildes: bool = False) -> Generator[str, None, None]: ...
 
 
 @overload
-def normalize(arg: List[str], remove_tildes: bool = False) -> Generator[str, None, None]:
-    ...
+def normalize(arg: list[str], remove_tildes: bool = False) -> Generator[str, None, None]: ...
 
 
 @overload
-def normalize(arg: Iterator[str], remove_tildes: bool = False) -> Generator[str, None, None]:
-    ...
+def normalize(arg: Iterator[str], remove_tildes: bool = False) -> Generator[str, None, None]: ...
 
 
-def normalize(arg: Union[str, List[str], Iterator[str]], remove_tildes: bool = False) -> Generator[str, None, None]:
+def normalize(arg: Union[str, list[str], Iterator[str]], remove_tildes: bool = False) -> Generator[str, None, None]:
     """Normalize text with mecab-ipadic-neologd rules.
 
     Parameters
