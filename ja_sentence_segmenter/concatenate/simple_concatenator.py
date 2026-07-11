@@ -1,6 +1,8 @@
 """Simple sentence concatenator for japanese text."""
+
 import re
-from typing import Generator, Iterator, List, Optional, Union, overload
+from collections.abc import Generator, Iterator
+from typing import Optional, Union, overload
 
 
 def __concatenate_matching_iter(
@@ -34,13 +36,12 @@ def __concatenate_matching_iter(
 
 @overload
 def concatenate_matching(
-    arg: List[str],
+    arg: list[str],
     former_matching_rule: Optional[str] = None,
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-) -> Generator[str, None, None]:
-    ...
+) -> Generator[str, None, None]: ...
 
 
 @overload
@@ -50,12 +51,11 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-) -> Generator[str, None, None]:
-    ...
+) -> Generator[str, None, None]: ...
 
 
 def concatenate_matching(
-    arg: Union[str, List[str], Iterator[str]],
+    arg: Union[str, list[str], Iterator[str]],
     former_matching_rule: Optional[str] = None,
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,

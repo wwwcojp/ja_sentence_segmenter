@@ -62,9 +62,10 @@ coverage.xml
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/
-docs/_build/
+# generated documentation (pdoc output), except committed specs
+/docs/*
+!/docs/superpowers/
+/_site
 
 # PyBuilder
 target/
@@ -110,11 +111,17 @@ dmypy.json
 
 # End of https://www.gitignore.io/api/python
 
-# for poetry
+# for uv
 /.venv
+
+# for ruff
+.ruff_cache/
 
 # for coverage tool
 cov.xml
 
 # for vscode
 /.vscode
+
+# for claude
+/.claude

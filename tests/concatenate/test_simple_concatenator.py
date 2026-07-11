@@ -1,5 +1,3 @@
-import pytest
-
 from ja_sentence_segmenter.concatenate import simple_concatenator
 
 
@@ -19,7 +17,14 @@ def test_concatenate_matching() -> None:
         ">  私はあなたがきらいです。でも実は好きなの",
         "かもしれない",
     ]
-    assert list(simple_concatenator.concatenate_matching(iter(texts))) == [">  私は", ">> あなたが", " > きらいです。", " >でも実は", "*好きなの", "かもしれない"]
+    assert list(simple_concatenator.concatenate_matching(iter(texts))) == [
+        ">  私は",
+        ">> あなたが",
+        " > きらいです。",
+        " >でも実は",
+        "*好きなの",
+        "かもしれない",
+    ]
 
     texts2 = ["私の", "願いは", "世界征服だ", "なによりも", "それを", "求めている"]
     assert list(simple_concatenator.concatenate_matching(iter(texts2), former_matching_rule=r"^(?P<result>.+)(の)$", remove_former_matched=True)) == [

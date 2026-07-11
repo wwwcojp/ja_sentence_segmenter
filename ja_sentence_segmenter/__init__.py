@@ -1,4 +1,4 @@
-# flake8: noqa
-"""
+"""ja_sentence_segmenter package.
+
 .. include:: ../README.md
 """
