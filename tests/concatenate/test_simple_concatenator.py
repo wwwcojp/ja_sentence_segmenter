@@ -103,3 +103,20 @@ def test_concatenate_matching_does_not_blow_up_on_large_input() -> None:
     result = list(simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False))
     assert len(result) == 60
     assert "".join(result) == "".join(texts)
+
+
+def test_concatenate_matching_applies_former_rule_to_oversized_first_line() -> None:
+    # 1行目が単独で上限を超えていても former_matching_rule は評価されなければならない。
+    # 上限は累積の伸びを止めるものであって、まだ一度も処理されていない行の処理を
+    # 拒否するものではない。
+    texts = ["あ" * 19999 + "の", "願いは"]
+
+    bounded = list(
+        simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=True, max_concatenate_length=10000)
+    )
+    unbounded = list(
+        simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=True, max_concatenate_length=None)
+    )
+
+    assert bounded == unbounded
+    assert bounded == ["あ" * 19999 + "願いは"]

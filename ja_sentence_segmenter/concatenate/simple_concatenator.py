@@ -18,11 +18,16 @@ def __concatenate_matching_iter(
 ) -> Generator[str, None, None]:
     try:
         former = next(texts)
+        # 上限は「現在の累積で1回以上結合が起きた後」にのみ確認する。
+        # そうしないと、1行目が単独で上限を超えている場合に
+        # former_matching_rule が一度も評価されないまま素通りしてしまう。
+        concatenated = False
 
         for latter in texts:
-            if max_concatenate_length is not None and len(former) >= max_concatenate_length:
+            if concatenated and max_concatenate_length is not None and len(former) >= max_concatenate_length:
                 yield former
                 former = latter
+                concatenated = False
                 continue
 
             former_match_obj = re.match(former_matching_rule, former) if former_matching_rule else None
@@ -32,15 +37,19 @@ def __concatenate_matching_iter(
                 tmp_former = former_match_obj.group("result") if remove_former_matched else former
                 tmp_latter = latter_match_obj.group("result") if remove_latter_matched else latter
                 former = tmp_former + tmp_latter
+                concatenated = True
             elif former_matching_rule and not latter_matching_rule and former_match_obj:
                 tmp_former = former_match_obj.group("result") if remove_former_matched else former
                 former = tmp_former + latter
+                concatenated = True
             elif not former_matching_rule and latter_matching_rule and latter_match_obj:
                 tmp_latter = latter_match_obj.group("result") if remove_latter_matched else latter
                 former += tmp_latter
+                concatenated = True
             else:
                 yield former
                 former = latter
+                concatenated = False
 
         yield former
     except StopIteration:
@@ -104,6 +113,11 @@ def concatenate_matching(
         accumulation, which costs quadratic time in the size of the input.
         once an accumulation reaches this length it is yielded as is and a new
         accumulation starts, so no text is lost and no exception is raised.
+        the bound is only checked after the accumulation has been concatenated
+        at least once, so former_matching_rule is always applied at least once
+        per accumulation even if the first line already exceeds the bound.
+        that also means an accumulation may exceed the bound by up to the
+        length of a single line.
         None disables the bound. must be positive if not None.
 
     Raises
