@@ -1,4 +1,8 @@
+import pytest
+
 from ja_sentence_segmenter.concatenate import simple_concatenator
+
+RULE_NO = r"^(?P<result>.+)(の)$"
 
 
 def test_concatenate_matching() -> None:
@@ -65,3 +69,37 @@ def test_concatenate_matching() -> None:
             remove_latter_matched=True,
         )
     ) == ["私はもう死んでいる", "> 私はあなたがきらいです。でも実は", "*好きなの", "かもしれない"]
+
+
+def test_concatenate_matching_max_concatenate_length() -> None:
+    texts = ["あの"] * 100
+
+    # 上限に達したら打ち切って次の累積を始める
+    result = list(simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False, max_concatenate_length=10))
+    assert len(result) == 20
+    assert max(len(chunk) for chunk in result) == 10
+    # テキストの欠落がない
+    assert "".join(result) == "".join(texts)
+
+    # None を渡すと従来どおり無制限
+    assert list(
+        simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False, max_concatenate_length=None)
+    ) == ["".join(texts)]
+
+
+def test_concatenate_matching_max_concatenate_length_validation() -> None:
+    # concatenate_matching はジェネレータ関数なので、ValueError は呼び出し時点ではなく
+    # 最初の next() で送出される。list() で消費して検証する。
+    for invalid in (0, -1):
+        with pytest.raises(ValueError, match="max_concatenate_length must be positive or None"):
+            list(simple_concatenator.concatenate_matching(["あの"], max_concatenate_length=invalid))
+
+
+def test_concatenate_matching_does_not_blow_up_on_large_input() -> None:
+    # 上限がないと再帰的な再走査で二次時間になり、この入力で30秒かかる。
+    # 実時間ではなくチャンク数で検証する（CI の負荷変動に左右されないため）。
+    # 二次時間が復活した場合はテスト自体がタイムアウトして検出される。
+    texts = ["あの"] * 300000
+    result = list(simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False))
+    assert len(result) == 60
+    assert "".join(result) == "".join(texts)
