@@ -1,6 +1,6 @@
 [project]
 name = "ja_sentence_segmenter"
-version = "0.1.0"
+version = "0.2.0"
 description = "sentence segmenter for japanese text"
 authors = [{ name = "wwwcojp" }]
 readme = "README.md"
