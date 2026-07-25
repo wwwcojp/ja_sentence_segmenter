@@ -6,8 +6,20 @@ from re import Match
 from typing import Union, overload
 
 BETWEEN_QUOTE_JA_REGEX = r"「[^「」]*」"
+"""japanese quotation, whose punctuation is protected from splitting."""
+
 BETWEEN_PARENS_JA_REGEX = r"\([^()]*\)"
+"""parentheses, whose punctuation is protected from splitting."""
+
 ESCAPE_CHAR = "∯"
+"""sentinel wrapped around punctuation that must not split a sentence.
+
+it is stripped again once splitting is done. that final strip cannot tell a
+sentinel apart from the same character in the input, so any U+222F already
+present in the text is silently removed. remove it beforehand if your text
+may contain it.
+"""
+
 DEFAULT_PUNCTUATION_REGEX = r"。!?"
 """default punctuation characters for splitting."""
 
@@ -123,6 +135,13 @@ def split_punctuation(
     ------
     Generator[str, None, None]
         texts splitted with puctuations.
+
+    Notes
+    -----
+    protecting punctuation inside quotes and parentheses is implemented by
+    wrapping it in ESCAPE_CHAR (U+222F) and stripping that again afterwards.
+    the strip cannot tell a sentinel apart from the same character in the
+    input, so any U+222F already present in the text is silently removed.
     """
     if isinstance(arg, str):
         yield from __split_punctuation_iter(iter([arg]), punctuations, split_between_quote, split_between_parens)

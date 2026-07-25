@@ -1,5 +1,23 @@
 # concatenate_matching の DoS 対策と str 入力修正 実装計画
 
+> ## ⚠️ この計画は実行済みだが、その後の設計変更で一部が古くなっている
+>
+> Task 1〜4 はこの記述どおりに実行された（`5d054be` / `a851db6` / `fafb44a` / `d5faf72`）。その後のコードレビューで設計上の誤りが見つかり、`b4897b4` で方針を変更した。**以下の手順を現在の実装の説明として読まないこと。** 現在の設計は `docs/superpowers/specs/2026-07-25-concatenator-dos-fix-design.md` にある。
+>
+> 実行後に変わった点：
+>
+> | この計画の記述 | 現在の実装 |
+> | --- | --- |
+> | `max_concatenate_length` の既定値は `10000` | 既定値は **`None`**（上限はオプトイン） |
+> | `DEFAULT_MAX_CONCATENATE_LENGTH` 定数を公開する | 定数は**公開しない**（既定でないものを `DEFAULT_` と呼べないため） |
+> | ディスパッチに `else` を書かない | `else` で **`TypeError`** を送出する（`# type: ignore[unreachable]` 付き） |
+> | 正規表現はループ内で毎回 `re.match(pattern_str, ...)` | パターンをループ外で**1回だけコンパイル**する |
+> | 回帰テストは30万行・`len(result) == 60` | **3万行**・`len(result) == 6` |
+> | テスト項目は8つ | **10** つ（非対応型と上限境界の副作用を追加） |
+> | 「上限の影響は余分な分割のみ」 | **誤り。** 出力されるテキストの中身も変わる。仕様書の「上限を設定したときの副作用」を参照 |
+>
+> 手順を書き換えずに残してあるのは、この計画が実際にこの形で実行され、TDD の進行（Task 1 完了時点で Task 2・3 のテストだけが落ちること）がこの設計に対して検証されたという記録だからである。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** `concatenate_matching` の累積結合に上限を設けて二次時間の DoS を解消し、あわせて `str` 入力が黙って空を返す不整合を直す。

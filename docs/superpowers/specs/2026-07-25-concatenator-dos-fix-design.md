@@ -7,11 +7,13 @@
 
 ## 背景
 
+> このセクションと次の「スコープ」の行番号は、いずれも**ベースリビジョン `3b3a516`（修正前）**の位置を指す。修正後のファイルでは行が動いているので、`git show 3b3a516:<path>` で参照すること。
+
 Claude Security の全リポジトリスキャンで、検証パネルを通過した指摘は F1 の1件だけだった（9件中8件は 0-3 で否決）。F1 は `__concatenate_matching_iter` のアルゴリズム的 DoS である。
 
-`former` は `former_matching_rule` を満たした連続行の累積結合である。`simple_concatenator.py:15` はその正規表現を累積バッファ全体に対して毎ループ再実行し、21/24/27 行目は毎回バッファを新しい文字列として作り直す。どちらも1行あたり O(len(former)) なので、総計は入力長に対して二次となる。バッファ長にも吸収行数にも上限がない。
+`former` は `former_matching_rule` を満たした連続行の累積結合である。修正前の `simple_concatenator.py:15` はその正規表現を累積バッファ全体に対して毎ループ再実行し、21/24/27 行目は毎回バッファを新しい文字列として作り直す。どちらも1行あたり O(len(former)) なので、総計は入力長に対して二次となる。バッファ長にも吸収行数にも上限がない。
 
-現 HEAD で実測した（`former_matching_rule=r"^(?P<result>.+)(の)$"`, `remove_former_matched=False`, 入力は `あの` の繰り返し）。
+ベースリビジョンで実測した（`former_matching_rule=r"^(?P<result>.+)(の)$"`, `remove_former_matched=False`, 入力は `あの` の繰り返し）。
 
 | 入力 | 所要時間 |
 | --- | --- |
@@ -21,7 +23,7 @@ Claude Security の全リポジトリスキャンで、検証パネルを通過�
 
 入力2倍で時間4倍、二次であることが確認できる。README のパイプライン（`make_pipeline(normalize, split_newline, concat_tail_no, split_punc2)`）をそのまま Web API に載せた場合、1.80 MB の投稿1件で CPU コア1本を30秒占有できる。10 MB なら数時間規模になる。
 
-精査の過程で、F1 とは独立した2つ目の問題も見つかった。`concatenate_matching` のシグネチャと docstring は `arg: Union[str, list[str], Iterator[str]]` を宣言しているが、`simple_concatenator.py:90-93` の分岐は `list` と `Iterator` の2つしかない。`str` はどちらにも該当せず（`isinstance("abc", Iterator)` は `False`）、例外もなく空ジェネレータになる。
+精査の過程で、F1 とは独立した2つ目の問題も見つかった。`concatenate_matching` のシグネチャと docstring は `arg: Union[str, list[str], Iterator[str]]` を宣言しているが、修正前の `simple_concatenator.py:90-93` の分岐は `list` と `Iterator` の2つしかない。`str` はどちらにも該当せず（`isinstance("abc", Iterator)` は `False`）、例外もなく空ジェネレータになる。
 
 ```
 concatenate_matching('私の願いは', former_matching_rule=r'^(?P<result>.+)(の)$')  ->  []
@@ -29,6 +31,8 @@ concatenate_matching(['私の願いは'], former_matching_rule=r'^(?P<result>.+)
 ```
 
 これは他の3つの公開関数からの逸脱である。
+
+以下はいずれも修正前（`3b3a516`）の状態である。
 
 | 関数 | `Union` に `str` | `@overload` | `isinstance` 分岐 |
 | --- | --- | --- | --- |
@@ -126,9 +130,9 @@ for latter in texts:
 
 チェックをマッチより前に置くことが要件である。マッチの後に置くと、上限を超えた回のスキャンコストがすでに発生してしまう。
 
-このチェックにより `re.match` に渡る `former` の長さが上限で頭打ちになり、全体が O(n × 上限) すなわち入力長に対して線形になる。21/24/27 行目の文字列再結合コストも同時に頭打ちになる。
+このチェックにより `re.match` に渡る `former` の長さが上限で頭打ちになり、全体が O(n × 上限) すなわち入力長に対して線形になる。3つの結合分岐での文字列再結合コストも同時に頭打ちになる。
 
-チェックは4分岐すべての手前にあるので、`latter_matching_rule` のみを指定した経路（27 行目の `former += tmp_latter`、こちらも無制限に伸びる）も同じ1箇所で塞げる。
+チェックは4分岐すべての手前にあるので、`latter_matching_rule` のみを指定した経路（`former += tmp_latter` の分岐、こちらも無制限に伸びる）も同じ1箇所で塞げる。
 
 `max_concatenate_length is not None` と明示比較する。`if max_concatenate_length and ...` と書くと `0` が上限なしに落ちてしまい、`ValueError` を送出する設計と矛盾する。
 
@@ -238,7 +242,7 @@ else:
 
 セキュリティレポートは、上限に加えて「`former_matching_rule` を累積全体ではなく最後に追加されたセグメントまたは有界の接尾辞に対して評価する」「`+` の繰り返しではなくリストに貯めて yield 時に一度だけ join する」ことを提案していた。どちらも採用しない。
 
-**接尾辞マッチへの変更**は仕様違反である。`former` は「前の行」であり、結合結果が次の「前の行」になるのが仕様なので、ルールは累積全体に当たるのが正しい。この案を実装して `tests/concatenate/test_simple_concatenator.py:49` のケースにかけると期待値と食い違う。
+**接尾辞マッチへの変更**は仕様違反である。`former` は「前の行」であり、結合結果が次の「前の行」になるのが仕様なので、ルールは累積全体に当たるのが正しい。この案を実装して `test_concatenate_matching` の `texts3`（両ルールに行頭アンカーを指定するケース）にかけると期待値と食い違う。
 
 ```
 期待: [..., '> 私はあなたがきらいです。でも実は', ...]

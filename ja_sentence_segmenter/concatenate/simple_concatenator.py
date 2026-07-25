@@ -124,27 +124,9 @@ def concatenate_matching(
         e.g. r"^(\s*[>]+\s*)(?P<result>.+)$"
     max_concatenate_length : Optional[int], optional
         soft upper bound on the length of an accumulation, by default None,
-        meaning no bound.
-        without a bound, former_matching_rule is re-applied to an ever growing
-        accumulation and the accumulation is rebuilt on every line. both costs
-        are proportional to the accumulated length, so the total work is
-        quadratic in the size of the input. set this when segmenting untrusted
-        text; leaving it None keeps the unbounded behaviour.
-        once an accumulation reaches this length it is yielded as is and a new
-        accumulation starts. no text is lost and no exception is raised, but
-        the output differs from the unbounded run by more than split positions:
-        the bound is only checked after the accumulation has been concatenated
-        at least once, so former_matching_rule is applied at least once per
-        accumulation even if the first line already exceeds the bound -- an
-        accumulation may therefore exceed the bound by the length of the line
-        that started it plus one more line;
-        neither rule is evaluated at a bound boundary, so text that
-        remove_former_matched or remove_latter_matched would have stripped
-        survives into the output there;
-        an accumulation may be broken between an opening bracket and its
-        closing one, which stops split_punctuation from protecting the
-        punctuation inside it.
-        must be positive if not None.
+        meaning no bound. must be positive if not None.
+        set it when segmenting untrusted text, and see the notes below for
+        what it costs. leaving it None keeps the unbounded behaviour.
 
     Yields
     ------
@@ -159,6 +141,30 @@ def concatenate_matching(
         if max_concatenate_length is not None and not positive.
         both are raised on the first iteration rather than at call time,
         because this is a generator function.
+
+    Notes
+    -----
+    Why max_concatenate_length exists: without a bound, former_matching_rule
+    is re-applied to an ever growing accumulation and the accumulation itself
+    is rebuilt on every input line. both costs grow with the accumulated
+    length, so the total work is quadratic in the size of the input.
+
+    What setting it costs: once an accumulation reaches the bound it is
+    yielded as is and a new accumulation starts. no text is lost and no
+    exception is raised, but the output differs from an unbounded run by more
+    than where it is split.
+
+    - the bound is soft. it is only checked after an accumulation has been
+      concatenated at least once, so former_matching_rule is applied at least
+      once per accumulation even when the first line already exceeds the
+      bound. an accumulation may therefore exceed the bound by the length of
+      the line that started it plus one more line.
+    - neither matching rule is evaluated at a bound boundary, so text that
+      remove_former_matched or remove_latter_matched would have stripped
+      survives into the output there.
+    - an accumulation may be broken between an opening bracket and its
+      closing one, which stops split_punctuation from protecting the
+      punctuation inside it.
     """
     if max_concatenate_length is not None and max_concatenate_length <= 0:
         msg = f"max_concatenate_length must be positive or None, got {max_concatenate_length}"
