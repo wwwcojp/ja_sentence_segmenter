@@ -62,9 +62,7 @@ coverage.xml
 # Scrapy stuff:
 .scrapy
 
-# generated documentation (pdoc output), except committed specs
-/docs/*
-!/docs/superpowers/
+# generated documentation (pdoc output; poe pdoc and CI both write here)
 /_site
 
 # PyBuilder

@@ -106,4 +106,4 @@ fmt = { shell = "ruff format . && ruff check --fix .", help = "format code and a
 typecheck = { cmd = "mypy", help = "type check with mypy" }
 test = { cmd = "pytest", help = "run tests with pytest" }
 bandit = { cmd = "bandit -r ja_sentence_segmenter/", help = "analyze code using bandit" }
-pdoc = { cmd = "pdoc -d numpy -o docs -t theme/ ja_sentence_segmenter/", help = "generate api documents using pdoc" }
+pdoc = { cmd = "pdoc -d numpy -o _site -t theme/ ja_sentence_segmenter/", help = "generate api documents using pdoc (same output as CI)" }
