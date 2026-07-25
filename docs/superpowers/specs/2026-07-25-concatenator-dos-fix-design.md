@@ -43,7 +43,8 @@ concatenate_matching(['私の願いは'], former_matching_rule=r'^(?P<result>.+)
 
 含むもの。
 
-- `max_concatenate_length` 引数の追加による累積量の上限
+- `max_concatenate_length` 引数と `DEFAULT_MAX_CONCATENATE_LENGTH` 定数の追加による累積量の上限
+- 各累積が上限で打ち切られる前に必ず1回は `former_matching_rule` の評価を受けることの保証
 - `str` 入力の分岐と `str` 用 `@overload` の追加
 - 上記に伴う docstring、テスト、CHANGELOG、バージョンの更新
 
@@ -60,6 +61,10 @@ concatenate_matching(['私の願いは'], former_matching_rule=r'^(?P<result>.+)
 ### API
 
 ```python
+DEFAULT_MAX_CONCATENATE_LENGTH = 10000
+"""default soft upper bound on the accumulated length."""
+
+
 @overload
 def concatenate_matching(
     arg: str,
@@ -67,7 +72,7 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = 10000,
+    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
 ) -> Generator[str, None, None]: ...
 
 
@@ -85,9 +90,11 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = 10000,
+    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
 ) -> Generator[str, None, None]:
 ```
+
+既定値はモジュール定数 `DEFAULT_MAX_CONCATENATE_LENGTH` として公開する。`simple_splitter.py` の `DEFAULT_PUNCTUATION_REGEX` と同じ流儀であり、呼び出し側が既定値を参照して調整できる。
 
 `max_concatenate_length` は末尾のキーワード引数なので、既存の位置引数呼び出しはすべて無影響。
 
@@ -101,26 +108,49 @@ def concatenate_matching(
 
 ### アルゴリズム
 
-`__concatenate_matching_iter` のループ先頭、正規表現マッチより前にチェックを1つ挿入する。
+`__concatenate_matching_iter` のループ先頭、正規表現マッチより前にチェックを1つ挿入する。あわせて「現在の累積で結合が起きたか」を表すフラグ `concatenated` を導入する。
 
 ```python
+former = next(texts)
+concatenated = False
+
 for latter in texts:
-    if max_concatenate_length is not None and len(former) >= max_concatenate_length:
+    if concatenated and max_concatenate_length is not None and len(former) >= max_concatenate_length:
         yield former
         former = latter
+        concatenated = False
         continue
 
     former_match_obj = re.match(former_matching_rule, former) if former_matching_rule else None
-    # 以降は現行のまま
+    # 以降のマッチ処理は現行のまま。
+    # 3つの結合分岐では concatenated = True、else 分岐では concatenated = False を立てる。
 ```
 
-マッチより前に置くことが要件である。マッチの後に置くと、上限を超えた回のスキャンコストがすでに発生してしまう。
+チェックをマッチより前に置くことが要件である。マッチの後に置くと、上限を超えた回のスキャンコストがすでに発生してしまう。
 
 このチェックにより `re.match` に渡る `former` の長さが上限で頭打ちになり、全体が O(n × 上限) すなわち入力長に対して線形になる。21/24/27 行目の文字列再結合コストも同時に頭打ちになる。
 
 チェックは4分岐すべての手前にあるので、`latter_matching_rule` のみを指定した経路（27 行目の `former += tmp_latter`、こちらも無制限に伸びる）も同じ1箇所で塞げる。
 
 `max_concatenate_length is not None` と明示比較する。`if max_concatenate_length and ...` と書くと `0` が上限なしに落ちてしまい、`ValueError` を送出する設計と矛盾する。
+
+### concatenated フラグが必要な理由
+
+フラグなしで無条件にチェックすると、**累積の最初の行がすでに上限以上の長さだった場合、`former_matching_rule` が一度も評価されないまま素通りする**。`remove_former_matched` による除去も起きない。これは「余分に分割されるだけ」では済まない振る舞いの変更である。
+
+実測で確認した。`former_matching_rule=r"^(?P<result>.+)(の)$"`, `remove_former_matched=True`, 上限 10000、入力の1行目が 20000 文字（末尾が `の`）の場合。
+
+| 実装 | 出力チャンク数 | 1件目の末尾 | `の` の除去 |
+| --- | --- | --- | --- |
+| 現行 | 1 | `あああ願いは` | される |
+| フラグなし | 2 | `あああああの` | **されない** |
+| フラグあり | 1 | `あああ願いは` | される |
+
+フラグを入れることで **各累積は上限で打ち切られる前に必ず1回は `former_matching_rule` の評価を受ける**ことが保証され、現行の振る舞いが完全に保存される。
+
+フラグは線形性を損なわない。各累積に「上限を超えた1回ぶんのスキャン」を許すことになるが、その行は入力から1度しか消費されないため、無制限スキャンのコストの総和は入力長で頭打ちになる。「短行を大量に」「上限ちょうどの長さの行を連打」「巨大行と短行の交互」の3パターンで、いずれも入力2倍に対して時間約2倍であることを実測した。
+
+この保証の対象は `former_matching_rule` のみである。上限チェックで飛ばされた `latter` は `latter_matching_rule` の評価を受けずに次の `former` になるが、これは結合が起きなかったときの既存の else 分岐とまったく同じ構造であり、「除去は結合が発生したときのみ働く」という既存仕様と整合する。
 
 ### 意味論
 
@@ -130,7 +160,11 @@ for latter in texts:
 - `latter` は「結合しようとしている後の行」である。イテレータの先頭行には前の行が存在しないため `latter_matching_rule` の対象にならない
 - `remove_former_matched` / `remove_latter_matched` による除去は結合が発生したときのみ働く。結合が起きなければ除去すべきものはない
 
-上限はソフト上限である。次の行を読んだ時点で `len(former) >= max_concatenate_length` を判定するため、バッファは最大で `max_concatenate_length + 直近1行の長さ` まで伸び得る。厳密な上限ではないことを docstring に明記する。
+加えて、上限の導入により次の不変条件を保証する。
+
+- **各累積は、上限で打ち切られる前に必ず1回は `former_matching_rule` の評価を受ける。** 上限は累積の伸びを止めるものであって、まだ一度も処理されていない行の処理を拒否するものではない
+
+上限はソフト上限である。次の行を読んだ時点で `len(former) >= max_concatenate_length` を判定すること、および上記の不変条件により初回の評価が免除されることから、バッファは上限を超え得る。厳密な上限ではないことを docstring に明記する。
 
 テキストの欠落はない。上限到達時は現在のバッファを `yield` してから `latter` で仕切り直すので、入力の全文字がどこかの出力チャンクに必ず現れる。
 
@@ -177,14 +211,19 @@ elif isinstance(arg, Iterator):
 `tests/concatenate/test_simple_concatenator.py` に追加する。既存のアサーションは1文字も変更しない。無変更で通ること自体が「意味論を壊していない」証拠になる。
 
 1. 回帰: 既定値のまま既存の全ケースが従来どおりの結果を返す
-2. 上限到達: 小さい上限（例 `max_concatenate_length=10`）で、全チャンクが `上限 + 最大行長` 以下に収まる
+2. 上限到達: 短い行と小さい上限（例 `max_concatenate_length=10`）で、全チャンクが `上限 + 最大行長` 以下に収まる
 3. 欠落なし: 上限到達を伴う入力について、出力の連結が入力の連結と一致する
-4. 上限なし: `max_concatenate_length=None` で従来の無制限動作になる
-5. 引数検証: `0` および負値で `ValueError` が送出される
-6. `str` 入力: `concatenate_matching('...')` が `concatenate_matching(['...'])` と同じ結果を返す
-7. 二次爆発の回帰防止: 一定行数の入力が既定値で現実的な時間内に完走する
+4. **初回評価の保証**: 1行目が単独で上限を超える入力に対し、`former_matching_rule` が評価されること。`remove_former_matched=True` で除去が起き、上限なしの場合と同じ結果になることで検証する
+5. 上限なし: `max_concatenate_length=None` で従来の無制限動作になる
+6. 引数検証: `0` および負値で `ValueError` が送出される
+7. `str` 入力: `concatenate_matching('...')` が `concatenate_matching(['...'])` と同じ結果を返す
+8. 二次爆発の回帰防止: 一定行数の入力が既定値で完走し、期待どおりのチャンク数になる
 
-7 は時間ではなくチャンク数で検証する。実時間のアサーションは CI の負荷変動で不安定になるため使わない。二次爆発が復活すればテスト自体がタイムアウトするので、検出には十分である。
+4 が本設計の要である。フラグを外すと落ちるテストであり、意図しない退行を検出する。
+
+8 は時間ではなくチャンク数で検証する。実時間のアサーションは CI の負荷変動で不安定になるため使わない。二次爆発が復活すればテスト自体がタイムアウトするので、検出には十分である。
+
+2 のアサーションは「短い行」に限定する。初回評価の保証により、1行目が上限を超える場合はチャンクが上限を超え得るため、無条件の上界にはならない。
 
 ## ドキュメントとバージョン
 
@@ -199,6 +238,8 @@ elif isinstance(arg, Iterator):
 
 品質ゲートはすべて通過した。`ruff check` は All checks passed、`ruff format --check` は already formatted、`mypy`（strict）は Success、`pytest` は既存テスト無変更で 5 passed。C901（`max-complexity = 10`）は発火しない。
 
+実装上の注意点が1つ見つかった。ディスパッチを `texts` 変数に一本化して末尾で `yield from` を1回だけ呼ぶ形に整理すると、`Union` が網羅されているため `else: return` が `warn_unreachable = true` に弾かれる。他3関数と同じく `yield from` を3分岐それぞれに書く形にする必要がある。
+
 性能は線形になった。
 
 | 入力 | 修正前 | 修正後 |
@@ -207,9 +248,9 @@ elif isinstance(arg, Iterator):
 | 3.6 MB | 未測定（二次から約8分と推定） | 2.35 s |
 | 14.4 MB | 未測定（二次から約2時間と推定） | 9.44 s |
 
-修正後は入力4倍で時間ちょうど4倍であり、線形であることが確認できる。
+修正後は入力4倍で時間ちょうど4倍であり、線形であることが確認できる。`concatenated` フラグ導入後も、3種類の攻撃パターン（短行の大量投入、上限ちょうどの長さの行の連打、巨大行と短行の交互）すべてで入力2倍に対して時間約2倍を維持した。
 
-動作も設計どおりだった。入力の連結と出力の連結が一致（欠落なし）、最大チャンク長が上限内、`str` 入力が `[str]` 入力と一致、`0` と負値で `ValueError`、`None` で従来動作。
+動作も設計どおりだった。1行目が上限を超える場合でも `former_matching_rule` が評価されて除去が起きること、入力の連結と出力の連結が一致すること（欠落なし）、短い行では最大チャンク長が上限内に収まること、`str` 入力が `[str]` 入力と一致すること、`0` と負値で `ValueError` になること、`None` で従来動作になることを確認した。
 
 ## リスク
 
@@ -217,6 +258,6 @@ elif isinstance(arg, Iterator):
 
 **`str` 入力の戻り値が空から1件に変わる。** 空を期待した呼び出しは考えにくいが、厳密には振る舞いの変更である。CHANGELOG に記載する。
 
-**テスト 7 が時間依存になる。** 閾値を緩く取るか、チャンク数による間接検証に切り替えて CI の不安定化を避ける。
+**`concatenated` フラグを外すと初回評価の保証が失われる。** リファクタリングで「フラグは冗長」と判断されると、1行目が上限を超える入力で `former_matching_rule` が適用されなくなる。テスト 4 がこれを検出する。フラグの意図をコード上のコメントと docstring の両方に残す。
 
 **このスキャンは依存関係の脆弱性を検査していない。** `.venv` は対象外であり、依存の脆弱性は Dependabot の担当である。本設計の範囲外。
