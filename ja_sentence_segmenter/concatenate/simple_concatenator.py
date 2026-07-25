@@ -4,9 +4,6 @@ import re
 from collections.abc import Generator, Iterator
 from typing import Optional, Union, overload
 
-DEFAULT_MAX_CONCATENATE_LENGTH = 10000
-"""default soft upper bound on the accumulated length."""
-
 
 def __concatenate_matching_iter(
     texts: Iterator[str],
@@ -16,6 +13,10 @@ def __concatenate_matching_iter(
     remove_latter_matched: bool,
     max_concatenate_length: Optional[int],
 ) -> Generator[str, None, None]:
+    # 累積は入力1行ごとに再走査されるので、パターンのコンパイルはループの外で1度だけ行う。
+    former_pattern = re.compile(former_matching_rule) if former_matching_rule else None
+    latter_pattern = re.compile(latter_matching_rule) if latter_matching_rule else None
+
     try:
         former = next(texts)
         # 上限は「現在の累積で1回以上結合が起きた後」にのみ確認する。
@@ -30,8 +31,8 @@ def __concatenate_matching_iter(
                 concatenated = False
                 continue
 
-            former_match_obj = re.match(former_matching_rule, former) if former_matching_rule else None
-            latter_match_obj = re.match(latter_matching_rule, latter) if latter_matching_rule else None
+            former_match_obj = former_pattern.match(former) if former_pattern else None
+            latter_match_obj = latter_pattern.match(latter) if latter_pattern else None
 
             if former_matching_rule and latter_matching_rule and former_match_obj and latter_match_obj:
                 tmp_former = former_match_obj.group("result") if remove_former_matched else former
@@ -63,7 +64,7 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
+    max_concatenate_length: Optional[int] = None,
 ) -> Generator[str, None, None]: ...
 
 
@@ -74,7 +75,7 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
+    max_concatenate_length: Optional[int] = None,
 ) -> Generator[str, None, None]: ...
 
 
@@ -85,7 +86,7 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
+    max_concatenate_length: Optional[int] = None,
 ) -> Generator[str, None, None]: ...
 
 
@@ -95,14 +96,18 @@ def concatenate_matching(
     latter_matching_rule: Optional[str] = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
+    max_concatenate_length: Optional[int] = None,
 ) -> Generator[str, None, None]:
     r"""Concatenate two lines with regular expression rule.
 
     Parameters
     ----------
-    arg : Union[str, List[str], Iterator[str]]
+    arg : Union[str, list[str], Iterator[str]]
         texts you want to concatenate.
+        a str is treated as one indivisible line and is never split, so it has
+        nothing to be concatenated with and comes back unchanged. split it into
+        lines yourself first -- `split_newline` does this -- and pass the
+        result here.
     former_matching_rule : Optional[str], optional
         regular expression for former line, by default None
     latter_matching_rule : Optional[str], optional
@@ -118,22 +123,28 @@ def concatenate_matching(
         only that group remains.
         e.g. r"^(\s*[>]+\s*)(?P<result>.+)$"
     max_concatenate_length : Optional[int], optional
-        soft upper bound on the length of an accumulation,
-        by default DEFAULT_MAX_CONCATENATE_LENGTH.
-        without a bound the matching rule is re-applied to an ever growing
-        accumulation, which costs quadratic time in the size of the input.
+        soft upper bound on the length of an accumulation, by default None,
+        meaning no bound.
+        without a bound, former_matching_rule is re-applied to an ever growing
+        accumulation and the accumulation is rebuilt on every line. both costs
+        are proportional to the accumulated length, so the total work is
+        quadratic in the size of the input. set this when segmenting untrusted
+        text; leaving it None keeps the unbounded behaviour.
         once an accumulation reaches this length it is yielded as is and a new
-        accumulation starts, so no text is lost and no exception is raised.
+        accumulation starts. no text is lost and no exception is raised, but
+        the output differs from the unbounded run by more than split positions:
         the bound is only checked after the accumulation has been concatenated
-        at least once, so former_matching_rule is always applied at least once
-        per accumulation even if the first line already exceeds the bound.
-        that also means an accumulation may exceed the bound by up to the
-        length of the line that started it plus one more line, not merely a
-        single line, since the first evaluation is exempt from the check.
-        the line that starts a new accumulation is not itself evaluated
-        against latter_matching_rule, so a prefix it would otherwise have
-        removed can survive into the output at a bound boundary.
-        None disables the bound. must be positive if not None.
+        at least once, so former_matching_rule is applied at least once per
+        accumulation even if the first line already exceeds the bound -- an
+        accumulation may therefore exceed the bound by the length of the line
+        that started it plus one more line;
+        neither rule is evaluated at a bound boundary, so text that
+        remove_former_matched or remove_latter_matched would have stripped
+        survives into the output there;
+        an accumulation may be broken between an opening bracket and its
+        closing one, which stops split_punctuation from protecting the
+        punctuation inside it.
+        must be positive if not None.
 
     Yields
     ------
@@ -142,10 +153,12 @@ def concatenate_matching(
 
     Raises
     ------
+    TypeError
+        if arg is not a str, a list or an Iterator.
     ValueError
         if max_concatenate_length is not None and not positive.
-        raised on the first iteration, not at call time, because this is a
-        generator function.
+        both are raised on the first iteration rather than at call time,
+        because this is a generator function.
     """
     if max_concatenate_length is not None and max_concatenate_length <= 0:
         msg = f"max_concatenate_length must be positive or None, got {max_concatenate_length}"
@@ -163,3 +176,8 @@ def concatenate_matching(
         yield from __concatenate_matching_iter(
             arg, former_matching_rule, latter_matching_rule, remove_former_matched, remove_latter_matched, max_concatenate_length
         )
+    else:
+        # 静的には到達しないが、型注釈のない呼び出しが tuple や set を渡したときに
+        # 黙って空を返さないための実行時ガード。
+        msg = f"arg must be a str, a list or an Iterator, got {type(arg).__name__}"  # type: ignore[unreachable]
+        raise TypeError(msg)

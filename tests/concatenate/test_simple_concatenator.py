@@ -95,13 +95,15 @@ def test_concatenate_matching_max_concatenate_length_validation() -> None:
             list(simple_concatenator.concatenate_matching(["あの"], max_concatenate_length=invalid))
 
 
-def test_concatenate_matching_does_not_blow_up_on_large_input() -> None:
-    # 上限がないと再帰的な再走査で二次時間になり、この入力で30秒かかる。
+def test_concatenate_matching_bounded_run_stays_linear() -> None:
+    # 上限を設定した場合の回帰防止。上限チェックが正規表現マッチより後ろに移ると
+    # 二次時間が復活し、この入力の所要時間が跳ね上がる。
     # 実時間ではなくチャンク数で検証する（CI の負荷変動に左右されないため）。
-    # 二次時間が復活した場合はテスト自体がタイムアウトして検出される。
-    texts = ["あの"] * 300000
-    result = list(simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False))
-    assert len(result) == 60
+    texts = ["あの"] * 30000
+    result = list(
+        simple_concatenator.concatenate_matching(iter(texts), former_matching_rule=RULE_NO, remove_former_matched=False, max_concatenate_length=10000)
+    )
+    assert len(result) == 6
     assert "".join(result) == "".join(texts)
 
 
@@ -123,7 +125,37 @@ def test_concatenate_matching_applies_former_rule_to_oversized_first_line() -> N
 
 
 def test_concatenate_matching_str_input() -> None:
-    # str は結合相手がないのでそのまま1件返る。他の3つの公開関数と同じ規約。
+    # str は1行として扱うので結合相手がなく、そのまま1件返る。
     result = list(simple_concatenator.concatenate_matching("私の願いは", former_matching_rule=RULE_NO))
     assert result == ["私の願いは"]
     assert result == list(simple_concatenator.concatenate_matching(["私の願いは"], former_matching_rule=RULE_NO))
+
+    # 改行を含んでいても分割しない。呼び出し側が split_newline 等で先に分割する。
+    assert list(simple_concatenator.concatenate_matching("私の\n願いは", former_matching_rule=RULE_NO, remove_former_matched=False)) == ["私の\n願いは"]
+
+
+def test_concatenate_matching_rejects_unsupported_types() -> None:
+    # tuple や set は従来どおりだと黙って空を返していた。静かなデータ消失を
+    # 診断可能なエラーに変える。
+    for unsupported in (("あの", "願いは"), {"あの"}, 42):
+        with pytest.raises(TypeError, match="arg must be a str, a list or an Iterator"):
+            list(simple_concatenator.concatenate_matching(unsupported))  # type: ignore[call-overload]
+
+
+def test_concatenate_matching_bound_boundary_skips_latter_rule() -> None:
+    # 上限境界では latter_matching_rule が評価されないため、剥がされるはずの接頭辞が
+    # 1行ぶん出力に残る。docstring に明記した挙動を固定し、意図しない変化を検出する。
+    quote_rule = r"^(\s*[>]+\s*)(?P<result>.+)$"
+    texts = ["> " + "あ" * 8] * 6
+
+    unbounded = list(simple_concatenator.concatenate_matching(iter(texts), latter_matching_rule=quote_rule, remove_latter_matched=True))
+    bounded = list(
+        simple_concatenator.concatenate_matching(iter(texts), latter_matching_rule=quote_rule, remove_latter_matched=True, max_concatenate_length=20)
+    )
+
+    # 上限なしなら先頭行の "> " だけが残る
+    assert unbounded == ["> " + "あ" * 48]
+    # 上限ありでは、各累積の先頭になった行の "> " も残る
+    assert bounded == ["> " + "あ" * 24, "> " + "あ" * 24]
+    assert "".join(unbounded).count(">") == 1
+    assert "".join(bounded).count(">") == 2
