@@ -58,6 +58,17 @@ def __concatenate_matching_iter(
 
 @overload
 def concatenate_matching(
+    arg: str,
+    former_matching_rule: Optional[str] = None,
+    latter_matching_rule: Optional[str] = None,
+    remove_former_matched: bool = True,
+    remove_latter_matched: bool = True,
+    max_concatenate_length: Optional[int] = DEFAULT_MAX_CONCATENATE_LENGTH,
+) -> Generator[str, None, None]: ...
+
+
+@overload
+def concatenate_matching(
     arg: list[str],
     former_matching_rule: Optional[str] = None,
     latter_matching_rule: Optional[str] = None,
@@ -136,7 +147,11 @@ def concatenate_matching(
         msg = f"max_concatenate_length must be positive or None, got {max_concatenate_length}"
         raise ValueError(msg)
 
-    if isinstance(arg, list):
+    if isinstance(arg, str):
+        yield from __concatenate_matching_iter(
+            iter([arg]), former_matching_rule, latter_matching_rule, remove_former_matched, remove_latter_matched, max_concatenate_length
+        )
+    elif isinstance(arg, list):
         yield from __concatenate_matching_iter(
             iter(arg), former_matching_rule, latter_matching_rule, remove_former_matched, remove_latter_matched, max_concatenate_length
         )

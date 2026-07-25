@@ -120,3 +120,10 @@ def test_concatenate_matching_applies_former_rule_to_oversized_first_line() -> N
 
     assert bounded == unbounded
     assert bounded == ["あ" * 19999 + "願いは"]
+
+
+def test_concatenate_matching_str_input() -> None:
+    # str は結合相手がないのでそのまま1件返る。他の3つの公開関数と同じ規約。
+    result = list(simple_concatenator.concatenate_matching("私の願いは", former_matching_rule=RULE_NO))
+    assert result == ["私の願いは"]
+    assert result == list(simple_concatenator.concatenate_matching(["私の願いは"], former_matching_rule=RULE_NO))
