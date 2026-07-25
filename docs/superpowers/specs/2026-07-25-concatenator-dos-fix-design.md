@@ -15,11 +15,11 @@ Claude Security の全リポジトリスキャンで、検証パネルを通過�
 
 | 入力 | 所要時間 |
 | --- | --- |
-| 225 KB | 2.51 s |
-| 450 KB | 7.07 s |
-| 900 KB | 30.13 s |
+| 0.45 MB | 2.51 s |
+| 0.90 MB | 7.07 s |
+| 1.80 MB | 30.13 s |
 
-入力2倍で時間4倍、二次であることが確認できる。README のパイプライン（`make_pipeline(normalize, split_newline, concat_tail_no, split_punc2)`）をそのまま Web API に載せた場合、900 KB の投稿1件で CPU コア1本を30秒占有できる。10 MB なら数時間規模になる。
+入力2倍で時間4倍、二次であることが確認できる。README のパイプライン（`make_pipeline(normalize, split_newline, concat_tail_no, split_punc2)`）をそのまま Web API に載せた場合、1.80 MB の投稿1件で CPU コア1本を30秒占有できる。10 MB なら数時間規模になる。
 
 精査の過程で、F1 とは独立した2つ目の問題も見つかった。`concatenate_matching` のシグネチャと docstring は `arg: Union[str, list[str], Iterator[str]]` を宣言しているが、`simple_concatenator.py:90-93` の分岐は `list` と `Iterator` の2つしかない。`str` はどちらにも該当せず（`isinstance("abc", Iterator)` は `False`）、例外もなく空ジェネレータになる。
 
@@ -246,9 +246,9 @@ elif isinstance(arg, Iterator):
 
 | 入力 | 修正前 | 修正後 |
 | --- | --- | --- |
-| 900 KB | 30.13 s | 0.58 s |
-| 3.6 MB | 未測定（二次から約8分と推定） | 2.35 s |
-| 14.4 MB | 未測定（二次から約2時間と推定） | 9.44 s |
+| 1.80 MB | 30.13 s | 0.58 s |
+| 7.20 MB | 未測定（二次から約8分と推定） | 2.35 s |
+| 28.80 MB | 未測定（二次から約2時間と推定） | 9.44 s |
 
 修正後は入力4倍で時間ちょうど4倍であり、線形であることが確認できる。`concatenated` フラグ導入後も、3種類の攻撃パターン（短行の大量投入、上限ちょうどの長さの行の連打、巨大行と短行の交互）すべてで入力2倍に対して時間約2倍を維持した。
 

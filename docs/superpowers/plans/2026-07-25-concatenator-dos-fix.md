@@ -238,7 +238,7 @@ git commit -m "fix: bound the accumulation in concatenate_matching
 
 The former matching rule was re-run over an unboundedly accumulated
 buffer once per input line, making the loop quadratic in the input size.
-A 900KB input pinned a CPU core for 30 seconds.
+A 1.8MB input pinned a CPU core for 30 seconds.
 
 Add max_concatenate_length, checked before the regex runs so the buffer
 handed to re.match is bounded. Total work becomes linear in the input."
@@ -499,7 +499,7 @@ Add the str branch and the matching overload."
 
 ## [0.2.0] 2026-07-25
 ### Security
-- `concatenate_matching`: bound the accumulated concatenation with the new `max_concatenate_length` parameter (default 10000). Without a bound, `former_matching_rule` was re-applied to an ever growing buffer once per input line, which is quadratic in the input size — a 900KB input pinned a CPU core for 30 seconds. Pass `None` to restore the previous unbounded behaviour.
+- `concatenate_matching`: bound the accumulated concatenation with the new `max_concatenate_length` parameter (default 10000). Without a bound, `former_matching_rule` was re-applied to an ever growing buffer once per input line, which is quadratic in the input size — a 1.8MB input pinned a CPU core for 30 seconds. Pass `None` to restore the previous unbounded behaviour.
 
 ### Fixed
 - `concatenate_matching`: accept `str` input. The signature declared it but the dispatch had no `str` branch, so a `str` argument silently yielded nothing.
@@ -541,4 +541,4 @@ git commit -m "chore: release 0.2.0"
 - [ ] `uv run poe typecheck` が `Success: no issues found in 9 source files` を返す
 - [ ] `uv run poe test` で全テストが PASS する
 - [ ] 既存の `test_concatenate_matching` が1文字も変更されていない（`git diff` で確認）
-- [ ] 900KB 相当の入力（`["あの"] * 300000`）が1秒前後で完走する
+- [ ] 1.8MB 相当の入力（`["あの"] * 300000`）が1秒前後で完走する

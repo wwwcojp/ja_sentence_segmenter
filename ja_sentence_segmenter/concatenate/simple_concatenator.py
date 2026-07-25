@@ -128,8 +128,17 @@ def concatenate_matching(
         at least once, so former_matching_rule is always applied at least once
         per accumulation even if the first line already exceeds the bound.
         that also means an accumulation may exceed the bound by up to the
-        length of a single line.
+        length of the line that started it plus one more line, not merely a
+        single line, since the first evaluation is exempt from the check.
+        the line that starts a new accumulation is not itself evaluated
+        against latter_matching_rule, so a prefix it would otherwise have
+        removed can survive into the output at a bound boundary.
         None disables the bound. must be positive if not None.
+
+    Yields
+    ------
+    Generator[str, None, None]
+        concatenated texts.
 
     Raises
     ------
@@ -137,11 +146,6 @@ def concatenate_matching(
         if max_concatenate_length is not None and not positive.
         raised on the first iteration, not at call time, because this is a
         generator function.
-
-    Yields
-    ------
-    Generator[str, None, None]
-        concatenated texts.
     """
     if max_concatenate_length is not None and max_concatenate_length <= 0:
         msg = f"max_concatenate_length must be positive or None, got {max_concatenate_length}"
