@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] 2026-07-25
+## [0.2.0] 2026-07-26
 ### Added
 - `concatenate_matching`: new `max_concatenate_length` parameter, an opt-in bound on the accumulated concatenation. It defaults to `None`, so **existing behaviour is unchanged unless you set it**.
 
