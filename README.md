@@ -65,7 +65,9 @@ concat_tail_no = functools.partial(
 | `split_punctuation` | 句点で文に分割する |
 | `make_pipeline` | 上記を合成して1つの segmenter にする |
 
-いずれも `str` / `list[str]` / `Iterator[str]` を受け取り、ジェネレータを返します。ただし **`concatenate_matching` だけは `str` を「1行」として扱い、改行で分割しません。** 先に `split_newline` を通してください。
+`make_pipeline` 以外の4つは、いずれも `str` / `list[str]` / `Iterator[str]` を受け取り、ジェネレータを返します。ただし **`normalize` と `concatenate_matching` は `str` を1つの要素として扱い、改行で分割しません。** `normalize` は前後の空白と改行を取り除きますが、途中の改行は残したまま返します。`concatenate_matching` は改行を含む文字列を1行とみなします。行単位で処理したい場合は、先に `split_newline` を通してください。
+
+`make_pipeline` は上の関数を受け取り、それらを順に適用する関数を返します。
 
 ### パイプラインの順序
 

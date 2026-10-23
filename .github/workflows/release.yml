@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
+        with:
+          # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
+          version: "0.13.5"
       - name: Build distributions
         run: uv build
       - name: Publish to PyPI

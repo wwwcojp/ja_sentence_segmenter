@@ -20,9 +20,11 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
+          # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
+          version: "0.13.5"
           python-version: "3.13"
       - name: Build API docs
-        run: uv run --group dev pdoc -d numpy -o _site -t theme/ ja_sentence_segmenter/
+        run: uv run --locked --group dev pdoc -d numpy -o _site -t theme/ ja_sentence_segmenter/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

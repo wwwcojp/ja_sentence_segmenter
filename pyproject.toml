@@ -36,7 +36,7 @@ dev = [
     "mypy>=1.15",
     "pdoc>=15.0",
     "poethepoet>=0.30",
-    "ruff>=0.13",
+    "ruff>=0.16",
     "tox>=4.21",
     "tox-uv>=1.25",
 ]
@@ -74,6 +74,7 @@ convention = "numpy"
 
 [tool.mypy]
 files = ["ja_sentence_segmenter/**/*.py"]
+python_version = "3.10"
 strict = true
 warn_unreachable = true
 disallow_any_unimported = true
