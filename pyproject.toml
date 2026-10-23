@@ -53,6 +53,11 @@ module-root = ""
 [tool.ruff]
 line-length = 160
 
+[tool.ruff.format]
+# ruff 0.16 から Markdown 内の Python コードブロックも整形対象になった。
+# 計画・設計文書には関数シグネチャなどの断片が含まれ、整形すると意味が変わるため除外する
+exclude = ["docs/superpowers/**"]
+
 [tool.ruff.lint]
 select = ["A", "B", "C4", "C90", "D", "E", "F", "I", "N", "RUF", "SIM", "UP", "W"]
 # 日本語テキストを扱うライブラリのため、全角文字を「紛らわしい文字」として
