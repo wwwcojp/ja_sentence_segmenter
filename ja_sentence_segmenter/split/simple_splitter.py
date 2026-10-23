@@ -17,9 +17,11 @@ ESCAPE_CHAR = "∯"
 it is stripped again once splitting is done. the splitter cannot tell a
 sentinel apart from the same character in the input, so a U+222F already
 present in the text interferes: punctuation directly preceded or followed by
-it is not split, and when it appears on both sides of a punctuation, both
-are removed (``"あ∯。∯い。"`` yields ``"あ。い。"``). other occurrences are
-kept. remove it beforehand if your text may contain it.
+it is not split, and a ``∯<punctuation>∯`` sequence loses both U+222F
+(``"あ∯。∯い。"`` yields ``"あ。い。"``). such sequences are matched without
+overlap, so in ``"あ∯。∯。∯い。"`` only the first one is unwrapped and the
+result is ``"あ。。∯い。"``. other occurrences are kept. remove it
+beforehand if your text may contain it.
 """
 
 DEFAULT_PUNCTUATION_REGEX = r"。!?"
@@ -143,8 +145,8 @@ def split_punctuation(
     protecting punctuation inside quotes and parentheses is implemented by
     wrapping it in ESCAPE_CHAR (U+222F) and stripping that again afterwards.
     a U+222F already present in the input is mistaken for a sentinel:
-    punctuation directly next to it is not split, and a U+222F on both sides
-    of a punctuation is removed. see ESCAPE_CHAR.
+    punctuation directly next to it is not split, and a non-overlapping
+    ``∯<punctuation>∯`` sequence loses both U+222F. see ESCAPE_CHAR.
     """
     if isinstance(arg, str):
         yield from __split_punctuation_iter(iter([arg]), punctuations, split_between_quote, split_between_parens)
