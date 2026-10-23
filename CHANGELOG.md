@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] 2026-10-24
 ### Changed
 - Drop support for Python 3.9 (minimum supported version is now 3.10). Python 3.9 reached end of life in October 2025, and patched releases of development dependencies (filelock, pytest) no longer support it.
-- CI installs from `uv.lock` with `--locked`, pins the uv binary, and runs tox from the locked dev environment, so reruns of the same commit use the same tooling.
+- CI pins the uv binary and installs development and test dependencies from `uv.lock` with `--locked`, including tox, which now runs from the locked dev environment instead of being resolved separately.
 
 ### Fixed
 - Docs: `split_punctuation` claimed that any U+222F (`∯`) in the input is removed. It is kept, except that punctuation directly next to it is not split and a non-overlapping `∯<punctuation>∯` sequence loses both U+222F. Behaviour is unchanged; only the description is corrected.
-- Docs: the README described `make_pipeline` as taking and returning text, and omitted that `normalize` treats a `str` as one item and keeps its inner newlines.
+- Docs: the README grouped `make_pipeline` with the text-processing functions; it accepts functions and returns a composed function. The README also omitted that `normalize` treats a `str` as one item and keeps its inner newlines.
 
 ## [0.2.0] 2026-07-26
 ### Added
