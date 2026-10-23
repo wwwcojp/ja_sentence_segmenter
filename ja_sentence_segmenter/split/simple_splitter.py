@@ -3,7 +3,7 @@
 import re
 from collections.abc import Generator, Iterator
 from re import Match
-from typing import Union, overload
+from typing import overload
 
 BETWEEN_QUOTE_JA_REGEX = r"「[^「」]*」"
 """japanese quotation, whose punctuation is protected from splitting."""
@@ -41,7 +41,7 @@ def split_newline(arg: list[str]) -> Generator[str, None, None]: ...
 def split_newline(arg: Iterator[str]) -> Generator[str, None, None]: ...
 
 
-def split_newline(arg: Union[str, list[str], Iterator[str]]) -> Generator[str, None, None]:
+def split_newline(arg: str | list[str] | Iterator[str]) -> Generator[str, None, None]:
     """Split text with line boundaries.
 
     Parameters
@@ -113,7 +113,7 @@ def split_punctuation(
 
 
 def split_punctuation(
-    arg: Union[str, list[str], Iterator[str]],
+    arg: str | list[str] | Iterator[str],
     punctuations: str = DEFAULT_PUNCTUATION_REGEX,
     split_between_quote: bool = False,
     split_between_parens: bool = False,

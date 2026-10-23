@@ -2,16 +2,16 @@
 
 import re
 from collections.abc import Generator, Iterator
-from typing import Optional, Union, overload
+from typing import overload
 
 
 def __concatenate_matching_iter(
     texts: Iterator[str],
-    former_matching_rule: Optional[str],
-    latter_matching_rule: Optional[str],
+    former_matching_rule: str | None,
+    latter_matching_rule: str | None,
     remove_former_matched: bool,
     remove_latter_matched: bool,
-    max_concatenate_length: Optional[int],
+    max_concatenate_length: int | None,
 ) -> Generator[str, None, None]:
     # 累積は入力1行ごとに再走査されるので、パターンのコンパイルはループの外で1度だけ行う。
     former_pattern = re.compile(former_matching_rule) if former_matching_rule else None
@@ -60,43 +60,43 @@ def __concatenate_matching_iter(
 @overload
 def concatenate_matching(
     arg: str,
-    former_matching_rule: Optional[str] = None,
-    latter_matching_rule: Optional[str] = None,
+    former_matching_rule: str | None = None,
+    latter_matching_rule: str | None = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = None,
+    max_concatenate_length: int | None = None,
 ) -> Generator[str, None, None]: ...
 
 
 @overload
 def concatenate_matching(
     arg: list[str],
-    former_matching_rule: Optional[str] = None,
-    latter_matching_rule: Optional[str] = None,
+    former_matching_rule: str | None = None,
+    latter_matching_rule: str | None = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = None,
+    max_concatenate_length: int | None = None,
 ) -> Generator[str, None, None]: ...
 
 
 @overload
 def concatenate_matching(
     arg: Iterator[str],
-    former_matching_rule: Optional[str] = None,
-    latter_matching_rule: Optional[str] = None,
+    former_matching_rule: str | None = None,
+    latter_matching_rule: str | None = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = None,
+    max_concatenate_length: int | None = None,
 ) -> Generator[str, None, None]: ...
 
 
 def concatenate_matching(
-    arg: Union[str, list[str], Iterator[str]],
-    former_matching_rule: Optional[str] = None,
-    latter_matching_rule: Optional[str] = None,
+    arg: str | list[str] | Iterator[str],
+    former_matching_rule: str | None = None,
+    latter_matching_rule: str | None = None,
     remove_former_matched: bool = True,
     remove_latter_matched: bool = True,
-    max_concatenate_length: Optional[int] = None,
+    max_concatenate_length: int | None = None,
 ) -> Generator[str, None, None]:
     r"""Concatenate two lines with regular expression rule.
 
