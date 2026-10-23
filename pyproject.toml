@@ -1,6 +1,6 @@
 [project]
 name = "ja_sentence_segmenter"
-version = "0.2.0"
+version = "0.3.0"
 description = "sentence segmenter for japanese text"
 authors = [{ name = "wwwcojp" }]
 readme = "README.md"
@@ -42,7 +42,7 @@ dev = [
 ]
 
 [build-system]
-requires = ["uv_build>=0.11,<0.13"]
+requires = ["uv_build>=0.11,<0.14"]
 build-backend = "uv_build"
 
 # フラットレイアウト(src/ なし)のため module-root を空にする
