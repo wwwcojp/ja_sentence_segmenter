@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
           version: "0.13.5"
@@ -39,7 +39,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
           version: "0.13.5"

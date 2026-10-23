@@ -16,7 +16,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
           version: "0.13.5"
