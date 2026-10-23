@@ -1,8 +1,7 @@
 """simple pipeline generator."""
 
 import functools
-from collections.abc import Generator
-from typing import Callable
+from collections.abc import Callable, Generator
 
 
 def make_pipeline(*funcs: Callable[..., Generator[str, None, None]]) -> Callable[..., Generator[str, None, None]]:

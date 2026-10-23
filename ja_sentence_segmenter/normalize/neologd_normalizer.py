@@ -7,7 +7,7 @@ https://github.com/neologd/mecab-ipadic-neologd/wiki/Regexp.ja#python-written-by
 import re
 import unicodedata
 from collections.abc import Generator, Iterator
-from typing import Union, overload
+from typing import overload
 
 
 def __unicode_normalize(cls: str, s: str) -> str:
@@ -51,7 +51,7 @@ def __normalize_neologd(s: str, remove_tildes: bool) -> str:
     s = __unicode_normalize("０-９Ａ-Ｚａ-ｚ｡-ﾟ", s)
 
     def maketrans(f: str, t: str) -> dict[int, int]:
-        return {ord(x): ord(y) for x, y in zip(f, t)}
+        return {ord(x): ord(y) for x, y in zip(f, t, strict=True)}
 
     s = re.sub("[˗֊‐‑‒–⁃⁻₋−]+", "-", s)  # normalize hyphens
     s = re.sub("[﹣－ｰ—―─━ー]+", "ー", s)  # normalize choonpus
@@ -84,7 +84,7 @@ def normalize(arg: list[str], remove_tildes: bool = False) -> Generator[str, Non
 def normalize(arg: Iterator[str], remove_tildes: bool = False) -> Generator[str, None, None]: ...
 
 
-def normalize(arg: Union[str, list[str], Iterator[str]], remove_tildes: bool = False) -> Generator[str, None, None]:
+def normalize(arg: str | list[str] | Iterator[str], remove_tildes: bool = False) -> Generator[str, None, None]:
     """Normalize text with mecab-ipadic-neologd rules.
 
     Parameters
