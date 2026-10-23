@@ -16,10 +16,12 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
+          # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
+          version: "0.13.5"
           python-version: "3.13"
           enable-cache: true
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
       - name: Ruff lint
         run: uv run ruff check .
       - name: Ruff format check
@@ -39,7 +41,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
+          # Dependabot はこの値を更新しないため、uv を上げるときは手動で揃える
+          version: "0.13.5"
           python-version: ${{ matrix.python-version }}
           enable-cache: true
       - name: Run tests via tox
-        run: uvx --with tox-uv tox run -e py
+        run: uv run --locked tox run -e py

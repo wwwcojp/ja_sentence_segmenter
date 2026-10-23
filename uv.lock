@@ -272,7 +272,7 @@ dev = [
     { name = "poethepoet", specifier = ">=0.30" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "ruff", specifier = ">=0.13" },
+    { name = "ruff", specifier = ">=0.16" },
     { name = "tox", specifier = ">=4.21" },
     { name = "tox-uv", specifier = ">=1.25" },
 ]
